@@ -13,9 +13,10 @@ Default layout:
 The visible outer black boundary remains 63 x 88 mm rather than becoming
 69 x 94 mm.
 
-Each batch of eight cards is written as a separate merged front/back output.
-For example, 22 selected cards produce OutputMerge.pdf, OutputMerge_2.pdf,
-and OutputMerge_3.pdf.
+Each batch of eight cards is written as a separate output. Card backs are
+included by default; use --single-sided (or --no-card-backs) to generate only
+front pages. For example, 22 selected cards produce OutputMerge.pdf,
+OutputMerge_2.pdf, and OutputMerge_3.pdf.
 
 Card selection is controlled by cards.txt. Example:
   4 Beza, the Bounding Spring (BLB) 287
@@ -36,7 +37,8 @@ flip.
 By default, the script looks for cards.txt, images, and
 horizontal_cardBack_3x3.pdf in the same folder as this script. It writes
 merge1.pdf, merge1_backs.pdf, OutputMerge.pdf, and numbered batch files there
-as needed.
+as needed. In single-sided mode, no card-back PDF is required and no
+merge1_backs.pdf files are created.
 """
 
 from __future__ import annotations
@@ -44,6 +46,7 @@ from __future__ import annotations
 import argparse
 import math
 import re
+import shutil
 import sys
 import unicodedata
 from dataclasses import dataclass
@@ -789,7 +792,19 @@ def parse_arguments() -> argparse.Namespace:
         help=(
             "Path to a PDF containing the card-back image. Its page layout is "
             f"ignored and backs are re-centered to the front grid. Default: "
-            f"{BACK_PDF_NAME} in the input folder, script folder, or current folder."
+            f"{BACK_PDF_NAME} in the input folder, script folder, or current folder. "
+            "Not required with --single-sided."
+        ),
+    )
+    parser.add_argument(
+        "--single-sided",
+        "--no-card-backs",
+        dest="single_sided",
+        action="store_true",
+        help=(
+            "Generate only card-front pages. The card-back PDF is not required, "
+            "back pages are not generated, and each output contains up to eight "
+            "single-sided cards."
         ),
     )
     parser.add_argument(
@@ -896,21 +911,24 @@ def main() -> int:
             args.script_folder,
             "--cards-txt",
         )
-        back_pdf = resolve_default_file(
-            args.back_pdf,
-            BACK_PDF_NAME,
-            input_folder,
-            args.script_folder,
-            "--back-pdf",
-        )
+        back_pdf = None
+        if not args.single_sided:
+            back_pdf = resolve_default_file(
+                args.back_pdf,
+                BACK_PDF_NAME,
+                input_folder,
+                args.script_folder,
+                "--back-pdf",
+            )
     except (FileNotFoundError, ValueError) as exc:
         raise SystemExit(str(exc)) from exc
 
     distinct_paths = {
         "fronts PDF": fronts_pdf,
-        "back PDF": back_pdf,
         "output PDF": output_pdf,
     }
+    if back_pdf is not None:
+        distinct_paths["back PDF"] = back_pdf
     if len({path for path in distinct_paths.values()}) != len(distinct_paths):
         details = "\n".join(f"  {name}: {path}" for name, path in distinct_paths.items())
         raise SystemExit(f"Fronts, back, and output PDF paths must be different:\n{details}")
@@ -963,14 +981,18 @@ def main() -> int:
 
     card_batches = chunk_items(selected_image_paths, layout.cards_per_page)
 
-    try:
-        back_card_image = extract_card_back_image(
-            back_pdf,
-            card_width_mm=args.card_width_mm,
-            card_height_mm=args.card_height_mm,
-        )
-    except Exception as exc:
-        raise SystemExit(f"Could not prepare the card-back image: {exc}") from exc
+    back_card_image = None
+    if not args.single_sided:
+        if back_pdf is None:
+            raise SystemExit("A card-back PDF is required unless --single-sided is used.")
+        try:
+            back_card_image = extract_card_back_image(
+                back_pdf,
+                card_width_mm=args.card_width_mm,
+                card_height_mm=args.card_height_mm,
+            )
+        except Exception as exc:
+            raise SystemExit(f"Could not prepare the card-back image: {exc}") from exc
 
     fronts_pdf.parent.mkdir(parents=True, exist_ok=True)
     output_pdf.parent.mkdir(parents=True, exist_ok=True)
@@ -995,23 +1017,24 @@ def main() -> int:
             "image and were skipped.",
             file=sys.stderr,
         )
+    siding = (
+        "single-sided; no card backs"
+        if args.single_sided
+        else f"duplex binding {args.duplex_binding}"
+    )
     print(
         "Layout: "
         f"{layout.columns} x {layout.rows} = {layout.cards_per_page} cards/page; "
         f"card {layout.card_width_mm:g} x {layout.card_height_mm:g} mm; "
         f"black bleed {layout.bleed_mm:g} mm per side; "
         f"margin {layout.margin_mm:g} mm; "
-        f"duplex binding {args.duplex_binding}."
+        f"{siding}."
     )
 
     batch_results: list[dict[str, object]] = []
     try:
         for batch_number, batch_images in enumerate(card_batches, start=1):
             batch_fronts_pdf = numbered_batch_path(fronts_pdf, batch_number)
-            batch_backs_pdf = numbered_batch_path(
-                fronts_pdf.with_name(f"{fronts_pdf.stem}_backs{fronts_pdf.suffix}"),
-                batch_number,
-            )
             batch_output_pdf = numbered_batch_path(output_pdf, batch_number)
 
             front_page_count = build_fronts_pdf(
@@ -1024,33 +1047,48 @@ def main() -> int:
                 report_auto_crop=(batch_number == 1),
                 cut_guides=not args.no_cut_guides,
             )
-            back_page_count = build_backs_pdf(
-                back_image=back_card_image,
-                card_count=len(batch_images),
-                output_pdf=batch_backs_pdf,
-                layout=layout,
-                dpi=args.dpi,
-                jpeg_quality=args.jpeg_quality,
-                cut_guides=not args.no_cut_guides,
-                duplex_binding=args.duplex_binding,
-            )
-            merged_front_pages, merged_back_pages, total_pages = merge_pdfs(
-                fronts_pdf=batch_fronts_pdf,
-                back_pdf=batch_backs_pdf,
-                output_pdf=batch_output_pdf,
-            )
 
-            if merged_back_pages != back_page_count:
-                raise RuntimeError(
-                    "Back PDF page count changed unexpectedly while merging: "
-                    f"expected {back_page_count}, got {merged_back_pages}."
+            batch_backs_pdf = None
+            back_page_count = 0
+            if args.single_sided:
+                shutil.copyfile(batch_fronts_pdf, batch_output_pdf)
+                merged_front_pages = front_page_count
+                total_pages = front_page_count
+            else:
+                batch_backs_pdf = numbered_batch_path(
+                    fronts_pdf.with_name(f"{fronts_pdf.stem}_backs{fronts_pdf.suffix}"),
+                    batch_number,
+                )
+                if back_card_image is None:
+                    raise RuntimeError("Card-back image was not prepared for duplex output.")
+
+                back_page_count = build_backs_pdf(
+                    back_image=back_card_image,
+                    card_count=len(batch_images),
+                    output_pdf=batch_backs_pdf,
+                    layout=layout,
+                    dpi=args.dpi,
+                    jpeg_quality=args.jpeg_quality,
+                    cut_guides=not args.no_cut_guides,
+                    duplex_binding=args.duplex_binding,
+                )
+                merged_front_pages, merged_back_pages, total_pages = merge_pdfs(
+                    fronts_pdf=batch_fronts_pdf,
+                    back_pdf=batch_backs_pdf,
+                    output_pdf=batch_output_pdf,
                 )
 
-            if merged_front_pages != front_page_count:
-                raise RuntimeError(
-                    "Front PDF page count changed unexpectedly while merging: "
-                    f"expected {front_page_count}, got {merged_front_pages}."
-                )
+                if merged_back_pages != back_page_count:
+                    raise RuntimeError(
+                        "Back PDF page count changed unexpectedly while merging: "
+                        f"expected {back_page_count}, got {merged_back_pages}."
+                    )
+
+                if merged_front_pages != front_page_count:
+                    raise RuntimeError(
+                        "Front PDF page count changed unexpectedly while merging: "
+                        f"expected {front_page_count}, got {merged_front_pages}."
+                    )
 
             batch_results.append(
                 {
@@ -1067,18 +1105,21 @@ def main() -> int:
     except Exception as exc:
         raise SystemExit(f"Failed to build the PDF: {exc}") from exc
 
+    output_kind = "single-sided" if args.single_sided else "merged front/back"
     print(
-        f"Created {len(batch_results)} merged PDF(s) from "
+        f"Created {len(batch_results)} {output_kind} PDF(s) from "
         f"{len(card_batches)} batch(es) of up to {layout.cards_per_page} cards:"
     )
     for result in batch_results:
-        print(
+        message = (
             f"  Batch {result['batch_number']}: "
             f"{result['card_count']} card(s); "
             f"fronts {result['fronts_pdf']} ({result['front_pages']} page(s)); "
-            f"backs {result['backs_pdf']} ({result['back_pages']} page(s)); "
-            f"output {result['output_pdf']} ({result['total_pages']} page(s))"
         )
+        if result["backs_pdf"] is not None:
+            message += f"backs {result['backs_pdf']} ({result['back_pages']} page(s)); "
+        message += f"output {result['output_pdf']} ({result['total_pages']} page(s))"
+        print(message)
     return 0
 
 

@@ -11,7 +11,8 @@
       - Sheet assembler:    .\assemble_card_sheets.py
       - Card-back PDF:      .\horizontal_cardBack_3x3.pdf
 
-    Use the path parameters when those projects live elsewhere. Proxyshop
+    The card-back PDF is not required when -SingleSided is used. Use the path
+    parameters when those projects live elsewhere. Proxyshop
     renders are read from ProxyshopDir\out, and each run writes print sheets to
     ProxyshopDir\orchestrated_runs\<timestamp>.
 
@@ -44,6 +45,10 @@
       -DownloaderDir "C:\path\to\MTG-Art-Downloader" `
       -ProxyshopDir "C:\path\to\Proxyshop" `
       -ProxyshopMode SourceHeadless
+
+.EXAMPLE
+    powershell -ExecutionPolicy Bypass -File .\orchestrate_proxy_workflow.ps1 `
+      -SingleSided
 #>
 
 #requires -Version 5.1
@@ -84,6 +89,9 @@ param(
     [switch]$SkipProxyshop,
     [switch]$SkipAssembly,
     [switch]$SkipPrint,
+
+    # Generates front-only sheets and does not require the card-back PDF.
+    [switch]$SingleSided,
 
     [string]$PrinterName = "",
 
@@ -1233,7 +1241,10 @@ function Invoke-AssemblyStage {
     Write-Section "Stage 4/4: Print-sheet assembly"
 
     $assembler = Resolve-RequiredFile -Path $AssemblerScript -Description "assemble_card_sheets.py"
-    $back = Resolve-RequiredFile -Path $BackPdf -Description "card-back PDF"
+    $back = $null
+    if (-not $SingleSided) {
+        $back = Resolve-RequiredFile -Path $BackPdf -Description "card-back PDF"
+    }
     $cardsTxt = Resolve-RequiredFile -Path (Join-Path $DownloaderDir "cards.txt") -Description "cards.txt"
     $renderFolder = Join-Path $ProxyshopDir "out"
     if (-not (Test-Path -LiteralPath $renderFolder -PathType Container)) {
@@ -1251,11 +1262,19 @@ function Invoke-AssemblyStage {
         $assembler,
         "--input-folder", $renderFolder,
         "--cards-txt", $cardsTxt,
-        "--back-pdf", $back,
         "--fronts-pdf", $frontsBase,
-        "--output", $outputBase,
-        "--duplex-binding", $DuplexBinding
+        "--output", $outputBase
     )
+
+    if ($SingleSided) {
+        $arguments += "--single-sided"
+    }
+    else {
+        $arguments += @(
+            "--back-pdf", $back,
+            "--duplex-binding", $DuplexBinding
+        )
+    }
 
     $exitCode = Invoke-NativeLogged `
         -FilePath $python.Path `
@@ -1610,7 +1629,8 @@ function Print-WithManualDialog {
     param(
         [Parameter(Mandatory = $true)][System.IO.FileInfo[]]$Pdfs,
         [Parameter(Mandatory = $true)][string]$Printer,
-        [Parameter(Mandatory = $true)][AllowEmptyString()][string]$Preset
+        [Parameter(Mandatory = $true)][AllowEmptyString()][string]$Preset,
+        [switch]$SingleSided
     )
 
     $sumatra = Find-SumatraPdf
@@ -1624,6 +1644,9 @@ function Print-WithManualDialog {
     }
     else {
         Write-Host "Select the desired paper, quality, scaling, and duplex settings in the print system dialog." -ForegroundColor Yellow
+    }
+    if ($SingleSided) {
+        Write-Host "Turn off two-sided/duplex printing for this single-sided output." -ForegroundColor Yellow
     }
 
     if ($sumatra) {
@@ -1674,7 +1697,8 @@ function Print-WithManualDialog {
 function Print-Automatically {
     param(
         [Parameter(Mandatory = $true)][System.IO.FileInfo[]]$Pdfs,
-        [Parameter(Mandatory = $true)][string]$Printer
+        [Parameter(Mandatory = $true)][string]$Printer,
+        [switch]$SingleSided
     )
 
     $sumatra = Find-SumatraPdf
@@ -1683,11 +1707,16 @@ function Print-Automatically {
         return $false
     }
 
+    $printSettings = "paper=letter,noscale,center"
+    if ($SingleSided) {
+        $printSettings += ",simplex"
+    }
+
     foreach ($pdf in $Pdfs) {
         Write-Host "Printing: $($pdf.FullName)"
         $arguments = (
             "-print-to `"$Printer`" " +
-            "-print-settings `"paper=letter,noscale,center`" " +
+            "-print-settings `"$printSettings`" " +
             "`"$($pdf.FullName)`""
         )
         $process = Start-Process -FilePath $sumatra -ArgumentList $arguments -PassThru -Wait
@@ -1748,7 +1777,7 @@ function Invoke-ReviewAndPrintStage {
     Write-Host "Preset:  $presetDisplay" -ForegroundColor Cyan
 
     if ($PrintMode -eq "ManualDialog") {
-        Print-WithManualDialog -Pdfs $pdfs -Printer $printer -Preset $preset
+        Print-WithManualDialog -Pdfs $pdfs -Printer $printer -Preset $preset -SingleSided:$SingleSided
         return $true
     }
 
@@ -1769,12 +1798,12 @@ function Invoke-ReviewAndPrintStage {
             if (-not $continue) {
                 return $false
             }
-            Print-WithManualDialog -Pdfs $pdfs -Printer $printer -Preset $preset
+            Print-WithManualDialog -Pdfs $pdfs -Printer $printer -Preset $preset -SingleSided:$SingleSided
             return $true
         }
     }
 
-    $printed = Print-Automatically -Pdfs $pdfs -Printer $printer
+    $printed = Print-Automatically -Pdfs $pdfs -Printer $printer -SingleSided:$SingleSided
     if (-not $printed) {
         $continue = Read-ContinueOrQuit `
             -Title "Automatic printing failed." `
@@ -1783,7 +1812,7 @@ function Invoke-ReviewAndPrintStage {
         if (-not $continue) {
             return $false
         }
-        Print-WithManualDialog -Pdfs $pdfs -Printer $printer -Preset $preset
+        Print-WithManualDialog -Pdfs $pdfs -Printer $printer -Preset $preset -SingleSided:$SingleSided
     }
 
     return $true
@@ -1811,19 +1840,24 @@ function Test-Configuration {
     $script:AssemblerScript = [System.IO.Path]::GetFullPath($AssemblerScript)
     $script:BackPdf = [System.IO.Path]::GetFullPath($BackPdf)
 
+    $backDisplay = if ($SingleSided) { "(disabled; single-sided output)" } else { $BackPdf }
+    $duplexDisplay = if ($SingleSided) { "(not used; single-sided output)" } else { $DuplexBinding }
+
     Write-Host "Downloader:  $DownloaderDir"
     Write-Host "Proxyshop:   $ProxyshopDir"
     Write-Host "Assembler:   $AssemblerScript"
-    Write-Host "Back PDF:    $BackPdf"
+    Write-Host "Back PDF:    $backDisplay"
     Write-Host "Clean art:   $CleanProxyshopArt"
     Write-Host "Print mode:  $PrintMode"
-    Write-Host "Duplex:      $DuplexBinding"
+    Write-Host "Duplex:      $duplexDisplay"
 
     Resolve-RequiredFile -Path (Join-Path $DownloaderDir "cards.txt") -Description "cards.txt" | Out-Null
 
     if (-not $SkipAssembly) {
         Resolve-RequiredFile -Path $AssemblerScript -Description "assemble_card_sheets.py" | Out-Null
-        Resolve-RequiredFile -Path $BackPdf -Description "card-back PDF" | Out-Null
+        if (-not $SingleSided) {
+            Resolve-RequiredFile -Path $BackPdf -Description "card-back PDF" | Out-Null
+        }
     }
 }
 

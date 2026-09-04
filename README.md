@@ -17,8 +17,8 @@ The tools and card artwork are not included. Use only artwork you are permitted 
 - Python 3.10–3.12
 - [Poetry](https://python-poetry.org/)
 - Adobe Photoshop desktop
-- A source checkout of Proxyshop for headless rendering: (https://github.com/Investigamer/Proxyshop/tree/9be3f1a4058f09fd5eedc890ee27f0e665c6b25c)
-- A source checkout of MTG-Art-Downloader ( Use https://github.com/BearWithTopHat/mtg-art-downloader as the original has a bug in it which prevents downloading)
+- A source checkout of [Proxyshop](https://github.com/Investigamer/Proxyshop/tree/9be3f1a4058f09fd5eedc890ee27f0e665c6b25c) for headless rendering
+- A source checkout of [BearWithTopHat/mtg-art-downloader](https://github.com/BearWithTopHat/mtg-art-downloader); use this fork because the original currently has a bug that prevents downloading
 - Python PDF/image packages:
 
 ```powershell
@@ -37,7 +37,7 @@ Place these files together. The orchestrator also looks for the two project chec
 ```text
 orchestrate_proxy_workflow.ps1
 assemble_card_sheets.py
-horizontal_cardBack_3x3.pdf
+horizontal_cardBack_3x3.pdf  # not needed for single-sided output
 MTG-Art-Downloader\
 Proxyshop\
 ```
@@ -46,7 +46,7 @@ Use `-DownloaderDir` and `-ProxyshopDir` when those checkouts live elsewhere.
 
 ## Create `horizontal_cardBack_3x3.pdf`
 
-Despite its name, this only needs to be a PDF containing one clean, upright card-back image. The assembler extracts that image and creates the aligned eight-card back pages itself.
+This source PDF is required only for duplex output. Despite its name, it only needs to contain one clean, upright card-back image. The assembler extracts that image and creates the aligned eight-card back pages itself. Use `-SingleSided` with the orchestrator, or `--single-sided` with the assembler, to skip card backs entirely.
 
 ### Option 1: Use a print-layout tool
 
@@ -140,6 +140,14 @@ powershell -ExecutionPolicy Bypass -File .\orchestrate_proxy_workflow.ps1 `
   -DuplexBinding long-edge
 ```
 
+For front-only sheets with no card backs, add:
+
+```powershell
+-SingleSided
+```
+
+Single-sided mode does not require `horizontal_cardBack_3x3.pdf` and ignores `-DuplexBinding`.
+
 Use `-ProxyshopMode GuiManual` if you prefer to click **Render All** in Proxyshop yourself. To select a non-default printer or a driver preset, add:
 
 ```powershell
@@ -153,7 +161,7 @@ During the run:
 1. Missing downloads or failed renders pause the workflow.
 2. Type `c` to continue or `q` to stop.
 3. Review the generated PDFs before approving printing.
-4. In the system print dialog, select the correct paper, quality, and duplex preset.
+4. In the system print dialog, select the correct paper, quality, scaling, and siding. Use one-sided/simplex for `-SingleSided` output.
 
 ## Output
 
@@ -163,16 +171,18 @@ Generated files are placed under:
 Proxyshop\orchestrated_runs\<timestamp>\
 ```
 
-The assembler produces one merged PDF for every group of up to eight cards. Each PDF contains:
+The assembler produces one PDF for every group of up to eight cards. Each duplex PDF contains:
 
 - Landscape US Letter pages
-- Eight 63×88 mm cards per sheet
+- Up to eight 63×88 mm cards per front sheet
 - An embedded 3 mm black bleed around each card
 - Matching back pages using the selected duplex alignment
 
+With `-SingleSided`, each PDF contains only the front sheet for its batch; no back pages are generated or appended.
+
 ## Duplex alignment
 
-Use the binding mode that matches the printer's automatic duplex behavior:
+This section applies only when card backs are enabled. Use the binding mode that matches the printer's automatic duplex behavior:
 
 ```powershell
 -DuplexBinding long-edge   # default
