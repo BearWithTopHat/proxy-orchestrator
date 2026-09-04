@@ -17,8 +17,8 @@ The tools and card artwork are not included. Use only artwork you are permitted 
 - Python 3.10–3.12
 - [Poetry](https://python-poetry.org/)
 - Adobe Photoshop desktop
-- A source checkout of Proxyshop 1.13.2 for headless rendering
-- A source checkout of MTG-Art-Downloader
+- A source checkout of Proxyshop for headless rendering: (https://github.com/Investigamer/Proxyshop/tree/9be3f1a4058f09fd5eedc890ee27f0e665c6b25c)
+- A source checkout of MTG-Art-Downloader ( Use https://github.com/BearWithTopHat/mtg-art-downloader as the original has a bug in it which prevents downloading)
 - Python PDF/image packages:
 
 ```powershell
