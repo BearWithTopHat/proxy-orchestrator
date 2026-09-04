@@ -1,6 +1,6 @@
 # Automated MTG Proxy Print Workflow
 
-This repository automates the process from a text card list to printable, duplex-aligned proxy sheets:
+This repository automates the process from a text card list to printable, duplex-aligned 8-card proxy sheets in landscape (This is for the proxyjak paper which recommends that configuration):
 
 1. Download card art with MTG-Art-Downloader.
 2. Render cards with Proxyshop and Adobe Photoshop.
