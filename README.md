@@ -1,6 +1,6 @@
 # Automated MTG Proxy Print Workflow
 
-This repository automates the process from a text card list to printable, duplex-aligned proxy sheets:
+This repository automates the process from a text card list to printable, duplex-aligned 8-card proxy sheets in landscape (This is for the proxyjak paper which recommends that configuration):
 
 1. Download card art with MTG-Art-Downloader.
 2. Render cards with Proxyshop and Adobe Photoshop.
@@ -47,7 +47,7 @@ Use `-DownloaderDir` and `-ProxyshopDir` when those checkouts live elsewhere.
 ## Create `horizontal_cardBack_3x3.pdf`
 
 This source PDF is required only for duplex output. Despite its name, it only needs to contain one clean, upright card-back image. The assembler extracts that image and creates the aligned eight-card back pages itself. Use `-SingleSided` with the orchestrator, or `--single-sided` with the assembler, to skip card backs entirely.
-
+You can find a card back image here: https://mtg.fandom.com/wiki/Card_back as an example of the type and size of card back you should use.
 ### Option 1: Use a print-layout tool
 
 1. Start with a card-back image cropped to the standard 63×88 mm ratio.
