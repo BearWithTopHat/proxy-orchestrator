@@ -28,19 +28,68 @@ python -m pip install pillow numpy reportlab pypdf
 Optional:
 
 - SumatraPDF, for a cleaner print-dialog workflow
-- Epson ET-8550 or another duplex-capable printer
+- Any duplex-capable printer supported by Windows
 
 ## Repository files
 
-Place these files together, or adjust the paths when running the orchestrator:
+Place these files together. The orchestrator also looks for the two project checkouts as subfolders by default:
 
 ```text
 orchestrate_proxy_workflow.ps1
 assemble_card_sheets.py
 horizontal_cardBack_3x3.pdf
+MTG-Art-Downloader\
+Proxyshop\
 ```
 
-MTG-Art-Downloader and Proxyshop remain separate checkouts.
+Use `-DownloaderDir` and `-ProxyshopDir` when those checkouts live elsewhere.
+
+## Create `horizontal_cardBack_3x3.pdf`
+
+Despite its name, this only needs to be a PDF containing one clean, upright card-back image. The assembler extracts that image and creates the aligned eight-card back pages itself.
+
+### Option 1: Use a print-layout tool
+
+1. Start with a card-back image cropped to the standard 63×88 mm ratio.
+2. Place it on a landscape US Letter PDF.
+3. Use a card size of 63×88 mm.
+4. Export the PDF as `horizontal_cardBack_3x3.pdf`.
+
+### Option 2: Generate it with Python
+
+Save an upright card-back image as `card-back.jpg`. Save the following as `create_card_back_pdf.py`:
+
+```python
+from reportlab.lib.units import mm
+from reportlab.lib.utils import ImageReader
+from reportlab.pdfgen import canvas
+
+page_width = 279.4 * mm
+page_height = 215.9 * mm
+card_width = 63 * mm
+card_height = 88 * mm
+
+pdf = canvas.Canvas(
+    "horizontal_cardBack_3x3.pdf",
+    pagesize=(page_width, page_height),
+)
+pdf.drawImage(
+    ImageReader("card-back.jpg"),
+    (page_width - card_width) / 2,
+    (page_height - card_height) / 2,
+    width=card_width,
+    height=card_height,
+)
+pdf.save()
+```
+
+Then run:
+
+```powershell
+python create_card_back_pdf.py
+```
+
+Place the resulting PDF beside `assemble_card_sheets.py`, or pass its location with `-BackPdf`.
 
 ## Install
 
@@ -73,7 +122,13 @@ Lightning Bolt
 
 ## Run
 
-From this repository:
+If you used the default folder layout above:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\orchestrate_proxy_workflow.ps1
+```
+
+For projects in other locations, provide explicit paths:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\orchestrate_proxy_workflow.ps1 `
@@ -85,7 +140,13 @@ powershell -ExecutionPolicy Bypass -File .\orchestrate_proxy_workflow.ps1 `
   -DuplexBinding long-edge
 ```
 
-Use `-ProxyshopMode GuiManual` if you prefer to click **Render All** in Proxyshop yourself.
+Use `-ProxyshopMode GuiManual` if you prefer to click **Render All** in Proxyshop yourself. To select a non-default printer or a driver preset, add:
+
+```powershell
+-PrinterName "Your Printer Name" -PrintPreset "Your Preset Name"
+```
+
+Leave `-PrintPreset` omitted to use the printer defaults.
 
 During the run:
 
@@ -128,7 +189,7 @@ If a test sheet places backs under the wrong fronts, run one sheet again with th
 - **No rendered cards:** check Proxyshop's `art`, `out`, and `logs` directories.
 - **Missing listed cards:** review MTG-Art-Downloader's `failed.txt`, then continue only if skipping those cards is acceptable.
 - **Incorrect card size or position:** confirm the PDF is printed at 100% scale with no fit-to-page option.
-- **Epson preset automation:** use the default manual system-dialog mode unless you have tested the experimental preset mode.
+- **Printer preset automation:** use the default manual system-dialog mode unless you have tested the experimental preset mode with your printer driver.
 
 ## Important
 
