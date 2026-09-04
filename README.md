@@ -47,7 +47,7 @@ Use `-DownloaderDir` and `-ProxyshopDir` when those checkouts live elsewhere.
 ## Create `horizontal_cardBack_3x3.pdf`
 
 Despite its name, this only needs to be a PDF containing one clean, upright card-back image. The assembler extracts that image and creates the aligned eight-card back pages itself.
-
+You can find a card back image here: https://mtg.fandom.com/wiki/Card_back as an example of the type and size of card back you should use.
 ### Option 1: Use a print-layout tool
 
 1. Start with a card-back image cropped to the standard 63×88 mm ratio.
