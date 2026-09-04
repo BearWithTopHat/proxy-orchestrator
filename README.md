@@ -195,14 +195,28 @@ If a test sheet places backs under the wrong fronts, run one sheet again with th
 ## Example Pictures
 
 Example folder Structure:
+
+
 <img width="566" height="280" alt="folderStruct" src="https://github.com/user-attachments/assets/c0a94c31-cc66-442d-9d65-895b26df7e3d" />
 
 Example run:
+
+
+
 <img width="702" height="194" alt="conf1" src="https://github.com/user-attachments/assets/6ec044a9-ba69-4c4e-b488-55205e56db01" />
+
+
 <img width="977" height="589" alt="mtgart1" src="https://github.com/user-attachments/assets/3744343f-bd30-4140-b9e2-90db1866d9c1" />
+
+
 <img width="1068" height="359" alt="proxyshop1" src="https://github.com/user-attachments/assets/5c5f91c1-b42a-4887-8979-fdc41da8d443" />
+
+
 <img width="1297" height="350" alt="formprintable1" src="https://github.com/user-attachments/assets/da8d8198-a123-4c63-a413-fb613a701756" />
+
+
 <img width="776" height="207" alt="printerStep1" src="https://github.com/user-attachments/assets/e87bfbea-28ae-4242-b524-49c17dfc2c51" />
+
 
 
 ## Troubleshooting
