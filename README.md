@@ -217,6 +217,40 @@ Example run:
 
 <img width="776" height="207" alt="printerStep1" src="https://github.com/user-attachments/assets/e87bfbea-28ae-4242-b524-49c17dfc2c51" />
 
+## Print Settings
+Epson ET-8550 - On printer menu, enable thick paper if using proxyjak paper.
+EPSON ET-8550 Series Driver Settings
+
+Paper Source : Rear Paper Feeder
+Document Size : Letter (8.5 x 11 in)
+Borderless : Off
+Orientation : Portrait
+Paper Type : Plain Paper / Bright White Paper
+Color : Color
+Quality : Standard
+Quality Detail : Level 2(1)
+Reduce/Enlarge Document : Off
+2-Sided Printing : Auto
+Create Folded Booklet : Off
+Pages per Sheet : Off
+Poster : Off
+Copies : 1
+Collate : On
+Reverse Order : Off
+Rotate 180° : Off
+Mirror Image : Off
+Color Management : Color Controls
+Color Mode : EPSON Vivid
+Gamma : 2.2
+Edge Smoothing : On
+Color Universal Print : None
+Anti-Copy Pattern : None
+Watermark : None
+Header/Footer : Off
+Emphasize Thin Lines : Off
+Emphasize Text : Off
+Bidirectional Printing : On
+Fix Red-Eye : Off
 
 
 ## Troubleshooting
