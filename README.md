@@ -192,6 +192,96 @@ This section applies only when card backs are enabled. Use the binding mode that
 
 If a test sheet places backs under the wrong fronts, run one sheet again with the other binding mode. Always verify with plain paper before using card stock.
 
+## Example Pictures
+
+Example folder Structure:
+
+
+<img width="566" height="280" alt="folderStruct" src="https://github.com/user-attachments/assets/c0a94c31-cc66-442d-9d65-895b26df7e3d" />
+
+Example run:
+
+
+
+<img width="702" height="194" alt="conf1" src="https://github.com/user-attachments/assets/6ec044a9-ba69-4c4e-b488-55205e56db01" />
+
+
+<img width="977" height="589" alt="mtgart1" src="https://github.com/user-attachments/assets/3744343f-bd30-4140-b9e2-90db1866d9c1" />
+
+
+<img width="1068" height="359" alt="proxyshop1" src="https://github.com/user-attachments/assets/5c5f91c1-b42a-4887-8979-fdc41da8d443" />
+
+
+<img width="1297" height="350" alt="formprintable1" src="https://github.com/user-attachments/assets/da8d8198-a123-4c63-a413-fb613a701756" />
+
+
+<img width="776" height="207" alt="printerStep1" src="https://github.com/user-attachments/assets/e87bfbea-28ae-4242-b524-49c17dfc2c51" />
+
+## Print Settings
+Epson ET-8550 - On printer menu, enable thick paper if using proxyjak paper.
+EPSON ET-8550 Series Driver Settings
+
+Paper Source : Rear Paper Feeder
+
+Document Size : Letter (8.5 x 11 in)
+
+Borderless : Off
+
+Orientation : Portrait
+
+Paper Type : Plain Paper / Bright White Paper
+
+Color : Color
+
+Quality : Standard
+
+Quality Detail : Level 2(1)
+
+Reduce/Enlarge Document : Off
+
+2-Sided Printing : Auto
+
+Create Folded Booklet : Off
+
+Pages per Sheet : Off
+
+Poster : Off
+
+Copies : 1
+
+Collate : On
+
+Reverse Order : Off
+
+Rotate 180° : Off
+
+Mirror Image : Off
+
+Color Management : Color Controls
+
+Color Mode : EPSON Vivid
+
+Gamma : 2.2
+
+Edge Smoothing : On
+
+Color Universal Print : None
+
+Anti-Copy Pattern : None
+
+Watermark : None
+
+Header/Footer : Off
+
+Emphasize Thin Lines : Off
+
+Emphasize Text : Off
+
+Bidirectional Printing : On
+
+Fix Red-Eye : Off
+
+
 ## Troubleshooting
 
 - **Missing Python packages in a Poetry project:** run `poetry install --no-root` in that project.
