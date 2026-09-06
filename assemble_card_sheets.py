@@ -20,11 +20,13 @@ OutputMerge_2.pdf, and OutputMerge_3.pdf.
 
 Card selection is controlled by cards.txt. Example:
   4 Beza, the Bounding Spring (BLB) 287
-  2 Elves of Deep Shadow (RAV) 161
-  Sol Ring (CMM) 410
+  2x Elves of Deep Shadow (RAV) 161
+  x1 Sol Ring (CMM) 410
+  Ancient Den (EOC) 148
 
-The leading quantity is optional; omitted quantities default to 1. Only the
-quantity and card name are used; the set code and collector number are ignored.
+The leading quantity is optional and may use 4, 4x, or x4; omitted quantities
+default to 1. Only the quantity and card name are used; the set code and
+collector number are ignored.
 Image filenames may either match the card name exactly or start with
 it, followed by metadata such as "(Normal) [BLB] {287}".
 
@@ -85,10 +87,13 @@ IMAGE_EXTENSIONS = {
     ".tiff",
 }
 
-# The leading quantity is optional and defaults to 1. The optional trailing
-# group consumes and ignores " (SET) collector-number".
+# The leading quantity is optional and defaults to 1. Accept common deck-list
+# forms such as "4 Card", "4x Card", and "x4 Card". The optional trailing group
+# consumes and ignores " (SET) collector-number".
 CARD_LIST_LINE_RE = re.compile(
-    r"^\s*(?:(?P<count>\d+)\s+)?(?P<name>.*?)(?:\s+\([^()]*\)\s+\S+)?\s*$"
+    r"^\s*(?:(?P<count>\d+)x?\s+|x(?P<count_prefix>\d+)\s+)?"
+    r"(?P<name>.*?)(?:\s+\([^()]*\)\s+\S+)?\s*$",
+    re.IGNORECASE,
 )
 
 
@@ -239,7 +244,7 @@ def parse_cards_txt(cards_txt: Path) -> tuple[list[CardRequest], list[str]]:
                 )
                 continue
 
-            quantity_text = match.group("count")
+            quantity_text = match.group("count") or match.group("count_prefix")
             quantity = int(quantity_text) if quantity_text else 1
             name = match.group("name").strip()
             if quantity < 1:

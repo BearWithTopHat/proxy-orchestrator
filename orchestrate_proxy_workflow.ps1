@@ -417,7 +417,8 @@ function Read-CardRequests {
     param([Parameter(Mandatory = $true)][string]$CardsTxt)
 
     $requests = New-Object System.Collections.Generic.List[object]
-    $pattern = '^\s*(?:(?<count>\d+)\s+)?(?<name>.*?)(?:\s+\([^()]*\)\s+\S+)?\s*$'
+    # Accept common deck-list quantity formats: "4 Card", "4x Card", and "x4 Card".
+    $pattern = '^\s*(?:(?<count>\d+)x?\s+|x(?<count_prefix>\d+)\s+)?(?<name>.*?)(?:\s+\([^()]*\)\s+\S+)?\s*$'
     $lineNumber = 0
 
     foreach ($line in Get-Content -LiteralPath $CardsTxt -Encoding UTF8) {
@@ -434,8 +435,12 @@ function Read-CardRequests {
 
         $name = $match.Groups["name"].Value.Trim()
         $quantity = 1
-        if ($match.Groups["count"].Success -and $match.Groups["count"].Value) {
-            $quantity = [int]$match.Groups["count"].Value
+        $quantityText = $match.Groups["count"].Value
+        if (-not $quantityText) {
+            $quantityText = $match.Groups["count_prefix"].Value
+        }
+        if ($quantityText) {
+            $quantity = [int]$quantityText
         }
         if (-not $name -or $quantity -lt 1) {
             Write-WarningLine "Skipping invalid cards.txt line ${lineNumber}: $trimmed"
